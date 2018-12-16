@@ -1,9 +1,10 @@
 Installation instructions:
 
 1: create a build dir $ mkdir build
-2: run cmake          $ cmake ..
-3: run make           $ make
-4: install            $ sudo make install
+2: cd into build      $ cd build
+3: run cmake          $ cmake ..
+4: run make           $ make
+5: install            $ sudo make install
 
 Warning: I don't really know what I am doing in c and with cmake. This hasonly
 been tested to work on my system.
