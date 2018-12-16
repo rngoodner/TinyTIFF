@@ -6,5 +6,5 @@ Installation instructions:
 4: run make           $ make
 5: install            $ sudo make install
 
-Warning: I don't really know what I am doing in c and with cmake. This hasonly
+Warning: I don't really know what I am doing in c and with cmake. This has only
 been tested to work on my system.
