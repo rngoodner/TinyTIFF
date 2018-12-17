@@ -701,149 +701,151 @@ int TinyTIFFReader_getSampleData(TinyTIFFReaderFile* tiff, void* buffer, uint16_
 
 
 
+extern "C" {
+
+    TinyTIFFReaderFile* TinyTIFFReader_open(const char* filename) {
+        TinyTIFFReaderFile* tiff=(TinyTIFFReaderFile*)malloc(sizeof(TinyTIFFReaderFile));
+
+        tiff->filesize=0;
+        struct stat file;
+        if(stat(filename,&file)==0) {
+             tiff->filesize=file.st_size;
+        }
+        tiff->currentFrame=TinyTIFFReader_getEmptyFrame();
 
 
-TinyTIFFReaderFile* TinyTIFFReader_open(const char* filename) {
-    TinyTIFFReaderFile* tiff=(TinyTIFFReaderFile*)malloc(sizeof(TinyTIFFReaderFile));
+        //tiff->file=v(filename, "rb");
+        TinyTIFFReader_fopen(tiff, filename);
+        tiff->systembyteorder=TIFFReader_get_byteorder();
+        memset(tiff->lastError, 0, TIFF_LAST_ERROR_SIZE);
+        tiff->wasError=FALSE;
+        if (TinyTIFFReader_fOK(tiff) && tiff->filesize>0) {
+            uint8_t tiffid[3]={0,0,0};
+            //fread(tiffid, 1,2,tiff->file);
+            TinyTIFFReader_fread(tiffid, 1,2,tiff);
 
-    tiff->filesize=0;
-    struct stat file;
-    if(stat(filename,&file)==0) {
-         tiff->filesize=file.st_size;
-    }
-    tiff->currentFrame=TinyTIFFReader_getEmptyFrame();
-
-
-    //tiff->file=v(filename, "rb");
-    TinyTIFFReader_fopen(tiff, filename);
-    tiff->systembyteorder=TIFFReader_get_byteorder();
-    memset(tiff->lastError, 0, TIFF_LAST_ERROR_SIZE);
-    tiff->wasError=FALSE;
-    if (TinyTIFFReader_fOK(tiff) && tiff->filesize>0) {
-        uint8_t tiffid[3]={0,0,0};
-        //fread(tiffid, 1,2,tiff->file);
-        TinyTIFFReader_fread(tiffid, 1,2,tiff);
-
-        //printf("      - head=%s\n", tiffid);
-        if (tiffid[0]=='I' && tiffid[1]=='I') tiff->filebyteorder=TIFF_ORDER_LITTLEENDIAN;
-        else if (tiffid[0]=='M' && tiffid[1]=='M') tiff->filebyteorder=TIFF_ORDER_BIGENDIAN;
-        else {
+            //printf("      - head=%s\n", tiffid);
+            if (tiffid[0]=='I' && tiffid[1]=='I') tiff->filebyteorder=TIFF_ORDER_LITTLEENDIAN;
+            else if (tiffid[0]=='M' && tiffid[1]=='M') tiff->filebyteorder=TIFF_ORDER_BIGENDIAN;
+            else {
+                free(tiff);
+                return NULL;
+            }
+            uint16_t magic=TinyTIFFReader_readuint16(tiff);
+            //printf("      - magic=%u\n", magic);
+            if (magic!=42) {
+                free(tiff);
+                return NULL;
+            }
+            tiff->firstrecord_offset=TinyTIFFReader_readuint32(tiff);
+            tiff->nextifd_offset=tiff->firstrecord_offset;
+            //printf("      - filesize=%u\n", tiff->filesize);
+            //printf("      - firstrecord_offset=%4X\n", tiff->firstrecord_offset);
+            TinyTIFFReader_readNextFrame(tiff);
+        } else {
             free(tiff);
             return NULL;
         }
-        uint16_t magic=TinyTIFFReader_readuint16(tiff);
-        //printf("      - magic=%u\n", magic);
-        if (magic!=42) {
+
+        return tiff;
+    }
+
+    void TinyTIFFReader_close(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            TinyTIFFReader_freeEmptyFrame(tiff->currentFrame);
+            //fclose(tiff->file);
+            TinyTIFFReader_fclose(tiff);
             free(tiff);
-            return NULL;
         }
-        tiff->firstrecord_offset=TinyTIFFReader_readuint32(tiff);
-        tiff->nextifd_offset=tiff->firstrecord_offset;
-        //printf("      - filesize=%u\n", tiff->filesize);
-        //printf("      - firstrecord_offset=%4X\n", tiff->firstrecord_offset);
-        TinyTIFFReader_readNextFrame(tiff);
-    } else {
-        free(tiff);
-        return NULL;
     }
 
-    return tiff;
-}
-
-void TinyTIFFReader_close(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        TinyTIFFReader_freeEmptyFrame(tiff->currentFrame);
-        //fclose(tiff->file);
-        TinyTIFFReader_fclose(tiff);
-        free(tiff);
-    }
-}
-
-int TinyTIFFReader_hasNext(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        if (tiff->nextifd_offset>0 && tiff->nextifd_offset<tiff->filesize) return TRUE;
-        else return FALSE;
-    } else {
-        return FALSE;
-    }
-}
-
-int TinyTIFFReader_readNext(TinyTIFFReaderFile* tiff) {
-    int hasNext=TinyTIFFReader_hasNext(tiff);
-    if (hasNext) {
-        TinyTIFFReader_readNextFrame(tiff);
-    }
-    return hasNext;
-}
-
-uint32_t TinyTIFFReader_getWidth(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        return tiff->currentFrame.width;
-    }
-    return 0;
-}
-
-uint32_t TinyTIFFReader_getHeight(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        return tiff->currentFrame.height;
-    }
-    return 0;
-}
-
-std::string TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        if (tiff->currentFrame.description) return std::string(tiff->currentFrame.description);
-    }
-    return std::string();
-}
-
-uint16_t TinyTIFFReader_getSampleFormat(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        return tiff->currentFrame.sampleformat;
-    }
-    return 0;
-}
-
-uint16_t TinyTIFFReader_getBitsPerSample(TinyTIFFReaderFile* tiff, int sample) {
-    if (tiff) {
-        return tiff->currentFrame.bitspersample[sample];
-    }
-    return 0;
-}
-
-uint16_t TinyTIFFReader_getSamplesPerPixel(TinyTIFFReaderFile* tiff) {
-    if (tiff) {
-        return tiff->currentFrame.samplesperpixel;
-    }
-    return 0;
-}
-
-
-uint32_t TinyTIFFReader_countFrames(TinyTIFFReaderFile* tiff) {
-
-    if (tiff) {
-        uint32_t frames=0;
-        TinyTIFFReader_POSTYPE pos;
-        //printf("    -> countFrames: pos before %ld\n", ftell(tiff->file));
-        //fgetpos(tiff->file, &pos);
-        TinyTIFFReader_fgetpos(tiff, &pos);
-
-        uint32_t nextOffset=tiff->firstrecord_offset;
-        while (nextOffset>0) {
-            //fseek(tiff->file, nextOffset, SEEK_SET);
-            TinyTIFFReader_fseek_set(tiff, nextOffset);
-            uint16_t count=TinyTIFFReader_readuint16(tiff);
-            //fseek(tiff->file, count*12, SEEK_CUR);
-            TinyTIFFReader_fseek_cur(tiff, count*12);
-            nextOffset=TinyTIFFReader_readuint32(tiff);
-            frames++;
+    int TinyTIFFReader_hasNext(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            if (tiff->nextifd_offset>0 && tiff->nextifd_offset<tiff->filesize) return TRUE;
+            else return FALSE;
+        } else {
+            return FALSE;
         }
-
-
-        //fsetpos(tiff->file, &pos);
-        TinyTIFFReader_fsetpos(tiff, &pos);
-        //printf("    -> countFrames: pos after %ld\n", ftell(tiff->file));
-        return frames;
     }
-    return 0;
+
+    int TinyTIFFReader_readNext(TinyTIFFReaderFile* tiff) {
+        int hasNext=TinyTIFFReader_hasNext(tiff);
+        if (hasNext) {
+            TinyTIFFReader_readNextFrame(tiff);
+        }
+        return hasNext;
+    }
+
+    uint32_t TinyTIFFReader_getWidth(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            return tiff->currentFrame.width;
+        }
+        return 0;
+    }
+
+    uint32_t TinyTIFFReader_getHeight(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            return tiff->currentFrame.height;
+        }
+        return 0;
+    }
+
+    std::string TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            if (tiff->currentFrame.description) return std::string(tiff->currentFrame.description);
+        }
+        return std::string();
+    }
+
+    uint16_t TinyTIFFReader_getSampleFormat(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            return tiff->currentFrame.sampleformat;
+        }
+        return 0;
+    }
+
+    uint16_t TinyTIFFReader_getBitsPerSample(TinyTIFFReaderFile* tiff, int sample) {
+        if (tiff) {
+            return tiff->currentFrame.bitspersample[sample];
+        }
+        return 0;
+    }
+
+    uint16_t TinyTIFFReader_getSamplesPerPixel(TinyTIFFReaderFile* tiff) {
+        if (tiff) {
+            return tiff->currentFrame.samplesperpixel;
+        }
+        return 0;
+    }
+
+
+    uint32_t TinyTIFFReader_countFrames(TinyTIFFReaderFile* tiff) {
+
+        if (tiff) {
+            uint32_t frames=0;
+            TinyTIFFReader_POSTYPE pos;
+            //printf("    -> countFrames: pos before %ld\n", ftell(tiff->file));
+            //fgetpos(tiff->file, &pos);
+            TinyTIFFReader_fgetpos(tiff, &pos);
+
+            uint32_t nextOffset=tiff->firstrecord_offset;
+            while (nextOffset>0) {
+                //fseek(tiff->file, nextOffset, SEEK_SET);
+                TinyTIFFReader_fseek_set(tiff, nextOffset);
+                uint16_t count=TinyTIFFReader_readuint16(tiff);
+                //fseek(tiff->file, count*12, SEEK_CUR);
+                TinyTIFFReader_fseek_cur(tiff, count*12);
+                nextOffset=TinyTIFFReader_readuint32(tiff);
+                frames++;
+            }
+
+
+            //fsetpos(tiff->file, &pos);
+            TinyTIFFReader_fsetpos(tiff, &pos);
+            //printf("    -> countFrames: pos after %ld\n", ftell(tiff->file));
+            return frames;
+        }
+        return 0;
+    }
+
 }
