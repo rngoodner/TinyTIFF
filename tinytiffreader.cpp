@@ -790,11 +790,12 @@ extern "C" {
         return 0;
     }
 
-    std::string TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff) {
+    const char* TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff) {
         if (tiff) {
-            if (tiff->currentFrame.description) return std::string(tiff->currentFrame.description);
+            if (tiff->currentFrame.description) return tiff->currentFrame.description;
         }
-        return std::string();
+        const char* nothing = "";
+        return nothing;
     }
 
     uint16_t TinyTIFFReader_getSampleFormat(TinyTIFFReaderFile* tiff) {

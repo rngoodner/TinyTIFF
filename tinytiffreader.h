@@ -202,7 +202,7 @@ extern "C" {
         \param tiff TIFF file 
 
      */
-    TINYTIFFREADER_LIB_EXPORT std::string TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff);
+    TINYTIFFREADER_LIB_EXPORT const char* TinyTIFFReader_getImageDescription(TinyTIFFReaderFile* tiff);
 
 }
 
