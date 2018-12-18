@@ -12,10 +12,4 @@ file(GLOB SOURCES "*.cpp")
 add_library(tinytiff SHARED ${SOURCES})
  
 # set the location for library installation
-if(LINUX)
-    install(TARGETS tinytiff DESTINATION /usr/lib)
-endif
-
-if(APPLE)
-    install(TARGETS tinytiff DESTINATION /usr/local/lib)
-endif
+install(TARGETS tinytiff DESTINATION /usr/lib)
