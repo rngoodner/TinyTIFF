@@ -20,7 +20,7 @@
 */
 
 
-//#define TINYTIFF_WRITE_COMMENTS
+#define TINYTIFF_WRITE_COMMENTS
 
 #include <math.h>
 #include <float.h>
@@ -134,7 +134,7 @@ struct TinyTIFFFile {
  */
 inline void TinyTIFFWriter_fopen(TinyTIFFFile* tiff, const char* filename) {
 #ifdef __USE_WINAPI_FOR_TIFF__
-    tiff->hFile = CreateFile(filename,               // name of the write
+    tiff->hFile = CreateFile(filename,         // name of the write
                        GENERIC_WRITE,          // open for writing
                        0,                      // do not share
                        NULL,                   // default security
@@ -686,44 +686,46 @@ extern "C" {
 }
 
 //#ifdef TINYTIFF_WRITE_COMMENTS
-extern "C" {
 
-    //void TinyTIFFWriter_close(TinyTIFFFile* tiff, char* imageDescription) {}
+//void TinyTIFFWriter_close(TinyTIFFFile* tiff, char* imageDescription) {}
 
-}
 
 //#else
-void TinyTIFFWriter_close(TinyTIFFFile* tiff, char* imageDescription) {
-//#endif
-   if (tiff) {
-        TinyTIFFWriter_fseek_set(tiff, tiff->lastIFDOffsetField);
-        WRITE32DIRECT_CAST(tiff, 0);
-#ifdef TINYTIFF_WRITE_COMMENTS
-        if (tiff->descriptionOffset>0) {
-          size_t dlen;
-          char description[TINYTIFFWRITER_DESCRIPTION_SIZE+1];
+extern "C" {
 
-          if (imageDescription) {
-              strcpy(description, imageDescription);
-          } else {
-		      for (int i=0; i<TINYTIFFWRITER_DESCRIPTION_SIZE+1; i++) description[i]='\0';
-              sprintf(description, "TinyTIFFWriter_version=1.1\nimages=%ld", tiff->frames);
-		  }
-          description[TINYTIFFWRITER_DESCRIPTION_SIZE-1]='\0';
-          dlen=strlen(description);
-          printf("WRITING COMMENT\n***");
-          printf(description);
-          printf("***\nlen=%ld\n\n", dlen);
-          TinyTIFFWriter_fseek_set(tiff, tiff->descriptionOffset);
-          TinyTIFFWriter_fwrite(description, 1, dlen+1, tiff);//<<" / "<<dlen<<"\n";
-          TinyTIFFWriter_fseek_set(tiff, tiff->descriptionSizeOffset);
-          WRITE32DIRECT_CAST(tiff, (dlen+1));
-        }
+    void TinyTIFFWriter_close(TinyTIFFFile* tiff, char* imageDescription) {
+    //#endif
+       if (tiff) {
+            TinyTIFFWriter_fseek_set(tiff, tiff->lastIFDOffsetField);
+            WRITE32DIRECT_CAST(tiff, 0);
+#ifdef TINYTIFF_WRITE_COMMENTS
+            if (tiff->descriptionOffset>0) {
+              size_t dlen;
+              char description[TINYTIFFWRITER_DESCRIPTION_SIZE+1];
+
+              if (imageDescription) {
+                  strcpy(description, imageDescription);
+              } else {
+                  for (int i=0; i<TINYTIFFWRITER_DESCRIPTION_SIZE+1; i++) description[i]='\0';
+                  sprintf(description, "TinyTIFFWriter_version=1.1\nimages=%ld", tiff->frames);
+              }
+              description[TINYTIFFWRITER_DESCRIPTION_SIZE-1]='\0';
+              dlen=strlen(description);
+              //printf("WRITING COMMENT\n***");
+              //printf(description);
+              //printf("***\nlen=%ld\n\n", dlen);
+              TinyTIFFWriter_fseek_set(tiff, tiff->descriptionOffset);
+              TinyTIFFWriter_fwrite(description, 1, dlen+1, tiff);//<<" / "<<dlen<<"\n";
+              TinyTIFFWriter_fseek_set(tiff, tiff->descriptionSizeOffset);
+              WRITE32DIRECT_CAST(tiff, (dlen+1));
+            }
 #endif // TINYTIFF_WRITE_COMMENTS
-        TinyTIFFWriter_fclose(tiff);
-        free(tiff->lastHeader);
-        free(tiff);
+            TinyTIFFWriter_fclose(tiff);
+            free(tiff->lastHeader);
+            free(tiff);
+        }
     }
+
 }
 
 //void TinyTIFFWriter_close(TinyTIFFFile* tiff, double pixel_width, double pixel_height, double frametime, double deltaz) {
