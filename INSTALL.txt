@@ -7,8 +7,14 @@ UNIX
 4: run make           $ make
 5: install            $ sudo make install
 
-WINDOWS
+WINDOWS (msvc)
 1: create a build dir $ mkdir build
 2: cd into build      $ cd build
 3: run cmake          $ cmake -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=TRUE -G "Visual Studio 15 2017 win64" ..
 4: build generated ".sln" file with visual studio
+
+WINDOWS (gnu)
+1: create a build dir $ mkdir build
+2: cd into build      $ cd build
+3: run cmake          $ cmake -G "MinGW Makefiles" ..
+4: make               $ mingw32-make
